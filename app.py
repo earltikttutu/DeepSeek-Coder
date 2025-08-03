@@ -1,37 +1,48 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+# app.py
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import gradio as gr
 
+# ————————————————————————————————
+# GANTI dengan token kau:
+ACCESS_TOKEN = "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"
+# Nama repo Spaces nanti: Fadhil04/Earl_Coder_Ai
+# ————————————————————————————————
+
 MODEL_ID = "deepseek-ai/deepseek-coder-6.7b-instruct"
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+# Load tokenizer & model dengan token hard-coded
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_ID,
+    use_auth_token=ACCESS_TOKEN
+)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
     torch_dtype=torch.float16,
     device_map="auto",
+    use_auth_token=ACCESS_TOKEN
 )
 
-def generate_code(prompt, max_new_tokens=4096, temperature=0.7, top_p=0.95):
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p
-    )
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+def generate_code(prompt: str, max_new_tokens: int = 256) -> str:
+    """Terima prompt teks, hasilkan kod."""
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.cuda()
+    output = model.generate(input_ids, max_new_tokens=max_new_tokens)
+    return tokenizer.decode(output[0], skip_special_tokens=True)
 
+# Sediakan interface Gradio
 demo = gr.Interface(
     fn=generate_code,
     inputs=[
-        gr.Textbox(lines=3, label="Arahan Kod"),
-        gr.Slider(16, 2048, step=16, value=256, label="Maksimum Token Baru"),
-        gr.Slider(0.1, 2.0, step=0.1, value=0.7, label="Temperature"),
-        gr.Slider(0.1, 1.0, step=0.05, value=0.95, label="Top-p"),
+        gr.Textbox(lines=3, label="💬 Prompt Anda"),
+        gr.Slider(minimum=64, maximum=4096, step=64, value=256, label="🔢 Max New Tokens")
     ],
-    outputs=gr.Textbox(label="Hasil Kod"),
-    title="DeepSeek Coder 6.7B",
-    description="Model AI penjana kod menggunakan DeepSeek 6.7B."
+    outputs=gr.Textbox(label="🖥️ Hasil Kod"),
+    title="Earl_Coder_Ai (DeepSeek Coder 6.7B)",
+    description=(
+        "AI penjana kod open-source berdasarkan DeepSeek Coder 6.7B. "
+        "Masukkan prompt, dan dapatkan kod Python/JavaScript/…"
+    ),
+    allow_flagging="never"
 )
 
 if __name__ == "__main__":
