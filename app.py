@@ -11,7 +11,7 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map="auto",
 )
 
-def generate_code(prompt, max_new_tokens=256, temperature=0.7, top_p=0.95):
+def generate_code(prompt, max_new_tokens=25600, temperature=0.7, top_p=0.95):
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     outputs = model.generate(
         **inputs,
